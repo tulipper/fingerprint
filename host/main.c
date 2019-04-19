@@ -30,12 +30,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h> 
+
 /* OP-TEE TEE client API (built by optee_client) */
 #include <tee_client_api.h>
 
 /* To the the UUID (found the the TA's h-file(s)) */
 #include "my_test_ca.h"
 #include "fingerdata.h"
+
+
+#include "myfeature.h"
+#include "readbmp.h"
+#include "Mat.h"
 
 
 static int g_TaskInitFlag = -1;    /* Flag if the task done initialize operation */
@@ -360,6 +366,7 @@ int g_VerifyCa_Authentication() {
         	TEEC_CloseSession(&l_session);
 	cleanup_2:
         	TEEC_FinalizeContext(&g_TaskContext);
+            g_TaskInitFlag = -1;
 	cleanup_1:
 		return l_RetVal;
 }
@@ -432,13 +439,81 @@ void printMatrix(double feature [24][24]) {
     }
     printf("\n");
 }
+int g_CryptoVerifyCa_Aes(CHAR* pData, UINT32 len, EN_AES_MODE aesMode, 
+                         EN_AES_OPERATION_ACTION operAction, CHAR* output)
+{
+    TEEC_Session   l_session;    /* Define the session of TA&CA */
+    TEEC_Operation l_operation;  /* Define the operation for communicating between TA&CA */
+    AesOperModeInfo l_aesMode;
+    int l_RetVal = FAIL;       /* Define the return value of function */
 
+    /**1) Initialize this task */
+    l_RetVal = l_CryptoVerifyCa_TaskInit();
+    if(FAIL == l_RetVal)
+    {
+        goto cleanup_1;
+    }
+
+    /**2) Open session */
+    l_RetVal = l_CryptoVerifyCa_OpenSession(&l_session);
+    if(FAIL == l_RetVal)
+    {
+        goto cleanup_2;
+    }
+
+    l_aesMode.active = operAction;
+    l_aesMode.mode = aesMode;
+
+    /**3) Set the communication context between CA&TA */
+    memset(&l_operation, 0x0, sizeof(TEEC_Operation));
+    l_operation.started = 1;
+    l_operation.paramTypes = TEEC_PARAM_TYPES(TEEC_VALUE_INPUT, TEEC_MEMREF_TEMP_INPUT, 
+                                              TEEC_MEMREF_TEMP_OUTPUT, TEEC_VALUE_INPUT);
+    l_operation.params[0].value.a = operAction;
+    l_operation.params[0].value.b = aesMode;
+    l_operation.params[1].tmpref.size = len;
+    l_operation.params[1].tmpref.buffer = pData;
+    l_operation.params[2].tmpref.size = len;
+    l_operation.params[2].tmpref.buffer = output;
+    l_operation.params[3].value.a = len;
+
+    /**4) Send command to TA */
+    l_RetVal = l_CryptoVerifyCa_SendCommand(&l_operation, &l_session, CMD_AES_OPER);
+    printf("The respond data length is 0x%02x\n", len);
+    
+    if(FAIL == l_RetVal)
+    {
+        goto cleanup_3;
+    }
+
+    /**5) The clean up operation */
+    cleanup_3:
+        TEEC_CloseSession(&l_session);
+    cleanup_2:
+        TEEC_FinalizeContext(&g_TaskContext);
+    cleanup_1:
+        return l_RetVal;
+}
 
 
 int main(int argc, char *argv[])
 {
     printf ("in the finger print ca \n");
 
+    dMat imagedata = readbmpfile("/1_1.bmp");
+	if (imagedata.rows ==0 || imagedata.cols == 0 || imagedata.array == NULL) {
+		printf("read file failed");
+		return -1;
+	}
+	printdMat(&imagedata);
+    printf("read file ok\n");
+	dMat fingercode = myfeature(imagedata);
+	printdMat(&fingercode);
+    fflush(stdout);
+	freemat(&imagedata);
+	freemat(&fingercode);
+// 	return 0;
+	return 0;
     //printf("the result of R' * x");
     // g_VerifyCa_GenModel();
     // g_VerifyCa_Authentication();

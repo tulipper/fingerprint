@@ -53,6 +53,7 @@
 #define TA_MY_TEST_CMD_RAND	    3
 #define TA_MY_TEST_CMD_GS	    4
 #define TA_MY_TEST_CMD_GenModel     5
+#define CMD_AES_OPER                6
 
 #define FAIL -1
 #define OK 0
@@ -103,6 +104,32 @@ typedef char           CHAR;     /**< Typedef for char                    */
  *                      FUNCTIONS SUPPLIED BY THIS MODULE
  *******************************************************************************
 */
+
+typedef enum
+{
+    EN_OP_AES_ENCRYPT = 1,
+    EN_OP_AES_DECRYPT,
+    EN_OP_AES_INVALID
+}EN_AES_OPERATION_ACTION;
+
+/* AES mode type */
+typedef enum
+{
+    EN_MODE_CBC = 1,
+    EN_MODE_ECB,
+    EN_MODE_CTR,
+    EN_MODE_CBC_CTS,
+    EN_MODE_INVALIE
+}EN_AES_MODE;
+typedef struct _AesOperModeInfo
+{
+    EN_AES_OPERATION_ACTION active;
+    EN_AES_MODE mode;
+}AesOperModeInfo;
+
+extern int g_CryptoVerifyCa_Aes(CHAR* pData, UINT32 len, EN_AES_MODE aesMode, 
+                         EN_AES_OPERATION_ACTION operAction, CHAR* output);
+
 
 
 

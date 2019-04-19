@@ -6,7 +6,7 @@ OBJCOPY = $(CROSS_COMPILE)objcopy
 OBJDUMP = $(CROSS_COMPILE)objdump
 READELF = $(CROSS_COMPILE)readelf
 
-OBJS = main.o
+OBJS = main.o gabor2d_sub.o Mat.o myfeature.o readbmp.o sector_norm.o whichsector.o complex.o fft.o
 
 CFLAGS += -Wall -I../ta/include -I$(TEEC_EXPORT)/include -I./include
 #Add/link other required libraries here
@@ -18,7 +18,7 @@ BINARY=my_test
 all: $(BINARY)
 
 $(BINARY): $(OBJS)
-	$(CC) $(LDADD) -o $@ $<
+	$(CC) $(LDADD) -o $@ $^
 
 .PHONY: clean
 clean:
